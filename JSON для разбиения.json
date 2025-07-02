@@ -1,0 +1,31 @@
+{
+  "number": "string",
+  "registryDate": "2025-03-06",
+  "RegistryUID": "",
+  "RegistrySum": 0,
+  "RegistryType": "",
+  "deliveryOrganization": "",
+  "registrySenderId": 0,
+  "registryRecipientId": 0,
+  "registryAmount": 0,
+  "numberItems": 0,
+  "dateTimeReceiptRegistry": "2025-06-06T012:15:29.620Z",
+  "messagePackageId": 0,
+  "paymentRegistryItem": [
+    {
+      "itemNumber": "string",
+      "dateCreation": "2025-03-06",
+      "RegistryStringUID": "",
+      "PaymentType": "",
+      "PaymentSum": 0,
+      "PaymentPurpose": "",
+      "PaymentOrder": "",
+      "OperationKind": "",
+      "ReceiverBankBic": "",
+      "ReceiverCorrAccount": "",
+      "ReceiverINN": "",
+      "ReceiverAccountNumber": "",
+      "ReceiverName": ""
+    }
+  ]
+}
