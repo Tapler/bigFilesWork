@@ -31,11 +31,15 @@ import org.json.JSONArray;
 
 public class Main {
     public static final int FILE_COUNT = 1; // Глобальное количество файлов (SegmentCount)
-    public static final int PAYMENT_COUNT = 10; // Глобальное количество платежей в каждом файле
+    public static final int PAYMENT_COUNT = 125700; // Глобальное количество платежей в каждом файле
 
     public static void main(String[] args) throws IOException {
         if (args.length > 0 && args[0].equals("mainSendApi")) {
             mainSendApi(args);
+            return;
+        }
+        if (args.length > 0 && args[0].equals("sendJsonBase64")) {
+            sendJsonFileAsBase64ToApi();
             return;
         }
         // Очистка файлов от прошлого запуска
@@ -159,6 +163,27 @@ public class Main {
         sendBase64ToApi(base64, fileName, token, FILE_COUNT);
     }
 
+    // Метод для отправки base64 JSON-файла в API
+    // Считывает файл qcppmd-json-7658.json, кодирует его в base64 и вызывает sendBase64ToApi
+    public static void sendJsonFileAsBase64ToApi() throws IOException {
+        // Отключаем проверку SSL-сертификата (НЕ для продакшена)
+        disableSslVerification();
+        // Имя файла JSON
+        String jsonFileName = "qcppmd-json-7658.json";
+        File jsonFile = new File(jsonFileName);
+        if (!jsonFile.exists()) {
+            System.out.println("Файл " + jsonFileName + " не найден");
+            return;
+        }
+        // Чтение содержимого файла
+        byte[] jsonBytes = Files.readAllBytes(jsonFile.toPath());
+        String base64 = Base64.getEncoder().encodeToString(jsonBytes);
+        // Получение токена из application.yml
+        String token = Config.get("token");
+        // Передаем исходное имя файла в API
+        sendBase64ToApi(base64, jsonFileName, token, 1);
+    }
+
     // Метод для отправки base64 в API
     public static void sendBase64ToApi(String base64, String fileName, String token, int fileCount) throws IOException {
         // URL и токен читаются из application.yml через Config
@@ -169,7 +194,7 @@ public class Main {
                 + "\"direction\": 0," 
                 + "\"fileName\": \"" + fileName + "\"," 
                 + "\"formatName\": \"Формат обработки платежных реестров ЦПВ МО\"," 
-                + "\"isUnzip\": 2," 
+                + "\"isUnzip\": 2,"
                 + "\"netStorage\": \"file\"," 
                 + "\"senderBusinessSystem\": \"ГИИС ДМДК\"," 
                 + "\"noProcessPackageCreate\": true," 

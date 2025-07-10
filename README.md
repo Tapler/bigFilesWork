@@ -22,6 +22,7 @@ mvn exec:java -Dexec.mainClass=org.example.Main
 
 ```
 mvn exec:java -Dexec.mainClass=org.example.Main -Dexec.args="mainSendApi"
+mvn exec:java -Dexec.mainClass=org.example.Main -Dexec.args="sendJsonBase64"
 ```
 
 или вызовите метод `Main.mainSendApi()` через вашу IDE.

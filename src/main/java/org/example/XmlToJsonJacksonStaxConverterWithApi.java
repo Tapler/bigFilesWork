@@ -21,8 +21,30 @@ public class XmlToJsonJacksonStaxConverterWithApi {
     public static final String msgPackageId = "7564";
     public static final boolean USE_API = true; // <-- переключатель: true = из API, false = из файла
     public static final String XML_PATH = "output_big_2000000_1.xml"; // путь к локальному XML (если не из API)
+    public static final String msgPackageJson = "7661"; // пример: "7658" (или null, если не нужен)
 
     public static void main(String[] args) throws Exception {
+        // --- Ветка: если задан msgPackageJson, получаем base64 и сохраняем как JSON-файл ---
+        if (msgPackageJson != null && !msgPackageJson.isEmpty()) {
+            String url = Config.get("find-msg-package-url") + msgPackageJson;
+            String base64Json;
+            try {
+                // Получение base64 из поля source по API
+                base64Json = fetchSourceField(url);
+            } catch (Exception ex) {
+                System.err.println("Ошибка при получении поля source для JSON: " + ex.getMessage());
+                return;
+            }
+            // Декодируем base64 в JSON-строку и сохраняем в файл
+            byte[] jsonBytes = java.util.Base64.getDecoder().decode(base64Json);
+            String jsonFileName = "qcppmd-json-" + msgPackageJson + ".json";
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(jsonFileName)) {
+                fos.write(jsonBytes);
+            }
+            System.out.println("JSON-файл успешно сохранён: " + jsonFileName);
+            return;
+        }
+
         // Замер памяти и времени до парсинга
         Runtime runtime = Runtime.getRuntime();
         long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
