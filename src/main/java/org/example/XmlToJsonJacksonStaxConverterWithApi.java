@@ -15,13 +15,14 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 public class XmlToJsonJacksonStaxConverterWithApi {
-    public static final String msgPackageId = "7564";
+    public static final String msgPackageId = "3732";
     public static final boolean USE_API = true; // <-- переключатель: true = из API, false = из файла
-    public static final String XML_PATH = "output_big_2000000_1.xml"; // путь к локальному XML (если не из API)
-    public static final String msgPackageJson = "7661"; // пример: "7658" (или null, если не нужен)
+    public static final String XML_PATH = "output_big_80000_1.xml"; // путь к локальному XML (если не из API)
+    public static final String msgPackageJson = null; // пример: "7658" (или null, если не нужен)
 
     public static void main(String[] args) throws Exception {
         // --- Ветка: если задан msgPackageJson, получаем base64 и сохраняем как JSON-файл ---
@@ -154,7 +155,7 @@ public class XmlToJsonJacksonStaxConverterWithApi {
      */
     public static String fetchSourceField(String urlStr) throws Exception {
         Main.disableSslVerification();
-        java.net.URL url = new java.net.URL(urlStr);
+        URL url = new URL(urlStr);
         javax.net.ssl.HttpsURLConnection conn = (javax.net.ssl.HttpsURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.connect();
@@ -192,7 +193,7 @@ public class XmlToJsonJacksonStaxConverterWithApi {
      */
     public static String saveBase64SourceToFile(String urlStr, String outBase64Path) throws Exception {
         Main.disableSslVerification();
-        java.net.URL url = new java.net.URL(urlStr);
+        URL url = new URL(urlStr);
         HttpsURLConnection conn = (HttpsURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.connect();

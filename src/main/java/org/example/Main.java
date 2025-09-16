@@ -1,5 +1,9 @@
 package org.example;
 
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -10,8 +14,8 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
-import java.time.ZonedDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -21,17 +25,9 @@ import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
-
-import org.json.JSONObject;
-import org.json.JSONArray;
-
 public class Main {
     public static final int FILE_COUNT = 1; // Глобальное количество файлов (SegmentCount)
-    public static final int PAYMENT_COUNT = 125700; // Глобальное количество платежей в каждом файле
+    public static final int PAYMENT_COUNT = 200000; // Глобальное количество платежей в каждом файле
 
     public static void main(String[] args) throws IOException {
         if (args.length > 0 && args[0].equals("mainSendApi")) {
@@ -42,10 +38,14 @@ public class Main {
             sendJsonFileAsBase64ToApi();
             return;
         }
+        if (args.length > 0 && args[0].equals("sendXmlBase64")) {
+            sendXmlFileAsBase64ToApi();
+            return;
+        }
         // Очистка файлов от прошлого запуска
         for (File f : new File(".").listFiles()) {
             String name = f.getName();
-            if (name.matches("output_\\d+\\.xml") || name.equals("result.zip") || name.equals("result.zip.base64")) {
+            if (name.matches("output_\\d+\\.xml") || name.equals("result2.zip") || name.equals("result2.zip.base64") || name.equals("result.base64")) {
                 f.delete();
             }
         }
@@ -104,8 +104,8 @@ public class Main {
         }
         System.out.println("XML файлы успешно сгенерированы: output_1.xml ... output_" + fileCount + ".xml");
 
-        // Сборка всех output_*.xml файлов в архив result.zip
-        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream("result.zip"))) {
+        // Сборка всех output_*.xml файлов в архив result2.zip
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream("result2.zip"))) {
             for (int fileNum = 1; fileNum <= fileCount; fileNum++) {
                 String fileName = "output_" + fileNum + ".xml";
                 File file = new File(fileName);
@@ -121,15 +121,15 @@ public class Main {
                 }
             }
         }
-        System.out.println("Все файлы собраны в архив result.zip");
+        System.out.println("Все файлы собраны в архив result2.zip");
 
         // Запись base64 файла
-        byte[] zipBytes = Files.readAllBytes(new File("result.zip").toPath());
+        byte[] zipBytes = Files.readAllBytes(new File("result2.zip").toPath());
         String base64 = Base64.getEncoder().encodeToString(zipBytes);
-        try (FileWriter writer = new FileWriter("result.zip.base64")) {
+        try (FileWriter writer = new FileWriter("result2.zip.base64")) {
             writer.write(base64);
         }
-        System.out.println("Создан файл result.zip.base64 с base64 содержимым архива");
+        System.out.println("Создан файл result2.zip.base64 с base64 содержимым архива");
     }
 
     // Отключение проверки SSL-сертификата (НЕ для продакшена)
@@ -154,55 +154,62 @@ public class Main {
     // Метод для запуска отправки base64 в API отдельно
     public static void mainSendApi(String[] args) throws IOException {
         disableSslVerification();
-        byte[] zipBytes = Files.readAllBytes(new File("result.zip").toPath());
+        byte[] zipBytes = Files.readAllBytes(new File("result2.zip").toPath());
         String base64 = Base64.getEncoder().encodeToString(zipBytes);
         // URL и токен читаются из application.yml через Config
         String token = Config.get("token");
         // Формируем имя файла для API
-        String fileName = String.format("cpv_mo%d_%03d.xml.good", PAYMENT_COUNT, FILE_COUNT);
+//        String fileName = String.format("cpv_mo%d_%03d.xml.good", PAYMENT_COUNT, FILE_COUNT);
+        String fileName = String.format("cpv_mo%d_%03d.xml", PAYMENT_COUNT, FILE_COUNT);
         sendBase64ToApi(base64, fileName, token, FILE_COUNT);
     }
 
-    // Метод для отправки base64 JSON-файла в API
-    // Считывает файл qcppmd-json-7658.json, кодирует его в base64 и вызывает sendBase64ToApi
-    public static void sendJsonFileAsBase64ToApi() throws IOException {
-        // Отключаем проверку SSL-сертификата (НЕ для продакшена)
+    // Метод для отправки base64 XML-файла (result.base64) в API с isUnzip=1
+    public static void sendXmlFileAsBase64ToApi() throws IOException {
         disableSslVerification();
-        // Имя файла JSON
-        String jsonFileName = "qcppmd-json-7658.json";
-        File jsonFile = new File(jsonFileName);
-        if (!jsonFile.exists()) {
-            System.out.println("Файл " + jsonFileName + " не найден");
+        String xmlBase64FileName = "result.base64";
+        File xmlBase64File = new File(xmlBase64FileName);
+        if (!xmlBase64File.exists()) {
+            System.out.println("Файл " + xmlBase64FileName + " не найден");
             return;
         }
-        // Чтение содержимого файла
-        byte[] jsonBytes = Files.readAllBytes(jsonFile.toPath());
-        String base64 = Base64.getEncoder().encodeToString(jsonBytes);
-        // Получение токена из application.yml
+        String base64 = new String(Files.readAllBytes(xmlBase64File.toPath()));
         String token = Config.get("token");
-        // Передаем исходное имя файла в API
-        sendBase64ToApi(base64, jsonFileName, token, 1);
+        // Имя файла для API (по аналогии с mainSendApi)
+        String fileName = String.format("cpv_mo%d_%03d.xml", PAYMENT_COUNT, FILE_COUNT);
+        sendBase64ToApi(base64, fileName, token, FILE_COUNT, 1);
+    }
+
+    public static void sendJsonFileAsBase64ToApi() throws IOException {
+        disableSslVerification();
+        String jsonBase64FileName = "result.base64";
+        File xmlBase64File = new File(jsonBase64FileName);
+        if (!xmlBase64File.exists()) {
+            System.out.println("Файл " + jsonBase64FileName + " не найден");
+            return;
+        }
+        String base64 = new String(Files.readAllBytes(xmlBase64File.toPath()));
+        String token = Config.get("token");
+        // Имя файла для API (по аналогии с mainSendApi)
+        String fileName = String.format("cpv_mo%d_%03d.json", PAYMENT_COUNT, FILE_COUNT);
+        sendBase64ToApi(base64, fileName, token, FILE_COUNT, 1);
     }
 
     // Метод для отправки base64 в API
-    public static void sendBase64ToApi(String base64, String fileName, String token, int fileCount) throws IOException {
-        // URL и токен читаются из application.yml через Config
+    // Добавлен параметр isUnzip для поддержки разных сценариев
+    public static void sendBase64ToApi(String base64, String fileName, String token, int fileCount, int isUnzip) throws IOException {
         String apiUrlMessageHub = Config.get("api-url");
-        String json = "{"
-                + "\"department\": \"ПАО Промсвязьбанк\"," 
-                + "\"destinationBusinessSystem\": \"QCPPMD\"," 
-                + "\"direction\": 0," 
-                + "\"fileName\": \"" + fileName + "\"," 
-                + "\"formatName\": \"Формат обработки платежных реестров ЦПВ МО\"," 
-                + "\"isUnzip\": 2,"
-                + "\"netStorage\": \"file\"," 
-                + "\"senderBusinessSystem\": \"ГИИС ДМДК\"," 
-                + "\"noProcessPackageCreate\": true," 
-                + "\"source\": \"" + base64 + "\"}";
-//        // Сохраняем requestBody (json) в файл для отладки
-//        try (java.io.FileWriter fw = new java.io.FileWriter("requestBody.json")) {
-//            fw.write(json);
-//        }
+        String json = "{" +
+                "\"department\": \"ПАО Промсвязьбанк\"," +
+                "\"destinationBusinessSystem\": \"QCPPMDB\"," +
+                "\"direction\": 0," +
+                "\"fileName\": \"" + fileName + "\"," +
+                "\"formatName\": \"Формат обработки платежных реестров ЦПВ МО\"," +
+                "\"isUnzip\": " + isUnzip + "," +
+                "\"netStorage\": \"file\"," +
+                "\"senderBusinessSystem\": \"QCPPMDB\"," +
+                "\"noProcessPackageCreate\": true," +
+                "\"source\": \"" + base64 + "\"}";
         URL url = new URL(apiUrlMessageHub);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("POST");
@@ -223,23 +230,10 @@ public class Main {
             }
         }
         System.out.println("API Response (" + code + "): " + response);
-        // Проверка childMsgPackageId
-        if (code == 200) {
-            try {
-                JSONObject obj = new JSONObject(response.toString());
-                if (obj.has("childMsgPackageId")) {
-                    JSONArray arr = obj.getJSONArray("childMsgPackageId");
-                    if (arr.length() == fileCount) {
-                        System.out.println("Проверка успешна: childMsgPackageId содержит " + fileCount + " элементов.");
-                    } else {
-                        System.out.println("Ошибка: childMsgPackageId содержит " + arr.length() + " элементов, ожидалось: " + fileCount);
-                    }
-                } else {
-                    System.out.println("Ошибка: поле childMsgPackageId отсутствует в ответе API");
-                }
-            } catch (Exception e) {
-                System.out.println("Ошибка при разборе ответа API: " + e.getMessage());
-            }
-        }
+    }
+
+    // Старый метод для обратной совместимости (по умолчанию isUnzip=2)
+    public static void sendBase64ToApi(String base64, String fileName, String token, int fileCount) throws IOException {
+        sendBase64ToApi(base64, fileName, token, fileCount, 2);
     }
 }

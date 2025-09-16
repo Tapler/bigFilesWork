@@ -14,13 +14,8 @@ import java.nio.charset.StandardCharsets;
 
 public class XmlToJsonJacksonStaxConverter {
     public static void main(String[] args) throws Exception {
-        // Замер памяти и времени до парсинга
-        Runtime runtime = Runtime.getRuntime();
-        long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
-        long startTime = System.currentTimeMillis();
-
         // Пути к исходному XML и результирующему JSON
-        String xmlPath = "output_big_7057000_1.xml";
+        String xmlPath = "cpv_mo51.xml";
         // Формируем путь к JSON-файлу на основе пути к XML-файлу, заменяя расширение на .json
         String jsonPath = xmlPath.replaceAll("\\.xml$", ".json");
 
@@ -41,7 +36,7 @@ public class XmlToJsonJacksonStaxConverter {
         // --- Запись в файл JSON потоково ---
         try (JsonGenerator gen = new JsonFactory().createGenerator(
                 new OutputStreamWriter(new FileOutputStream(jsonPath), StandardCharsets.UTF_8))) {
-            gen.useDefaultPrettyPrinter();
+            // gen.useDefaultPrettyPrinter(); // Удалено для уменьшения размера JSON без отступов
             gen.writeStartObject();
 
             // --- Формируем registry ---
@@ -147,29 +142,14 @@ public class XmlToJsonJacksonStaxConverter {
             gen.writeEndObject(); // root
         }
 
-//        // --- Сохраняем base64 версию рядом с json ---
-//        // Оптимизация: потоковое кодирование Base64, не читаем весь файл в память
-//        String base64Path = jsonPath + ".base64";
-//        try (
-//            java.io.InputStream jsonIn = new java.io.FileInputStream(jsonPath);
-//            java.io.OutputStream base64Out = new java.io.FileOutputStream(base64Path);
-//            java.io.OutputStream b64Stream = java.util.Base64.getEncoder().wrap(base64Out)
-//        ) {
-//            byte[] buffer = new byte[8192];
-//            int len;
-//            while ((len = jsonIn.read(buffer)) != -1) {
-//                b64Stream.write(buffer, 0, len);
-//            }
-//        } catch (Exception e) {
-//            System.err.println("Ошибка при сохранении base64-файла: " + e.getMessage());
-//        }
-
-        // Замер памяти и времени после парсинга
-        long endTime = System.currentTimeMillis();
-        long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
-        System.out.printf("Использовано памяти: %.2f MB\n", (usedMemoryAfter - usedMemoryBefore) / 1024.0 / 1024.0);
-        System.out.printf("Время выполнения: %.2f сек\n", (endTime - startTime) / 1000.0);
-        System.out.println("JSON успешно создан (новый формат): " + jsonPath);
+        // --- Сохраняем полученный JSON-файл в base64 в файл result.base64 ---
+        java.nio.file.Path jsonFilePath = java.nio.file.Paths.get(jsonPath);
+        byte[] jsonBytes = java.nio.file.Files.readAllBytes(jsonFilePath);
+        String base64Json = java.util.Base64.getEncoder().encodeToString(jsonBytes);
+        try (java.io.FileWriter writer = new java.io.FileWriter("result.base64")) {
+            writer.write(base64Json);
+        }
+        System.out.println("Создан файл result.base64 с base64 содержимым JSON-файла");
     }
 
     // Преобразует дату к формату yyyy-MM-dd

@@ -23,11 +23,16 @@ mvn exec:java -Dexec.mainClass=org.example.Main
 ```
 mvn exec:java -Dexec.mainClass=org.example.Main -Dexec.args="mainSendApi"
 mvn exec:java -Dexec.mainClass=org.example.Main -Dexec.args="sendJsonBase64"
+mvn exec:java -Dexec.mainClass=org.example.Main -Dexec.args="sendXmlBase64"
 ```
 
 или вызовите метод `Main.mainSendApi()` через вашу IDE.
 
 - Будет считан файл `result.zip.base64` и отправлен в API по адресу, указанному в коде.
+
+Для отправки base64 XML-файла (result.base64) в API с параметром isUnzip=1 вызовите:
+
+- Будет считан файл `result.base64` (base64-кодировка единственного XML-файла) и отправлен в API с параметром isUnzip=1.
 
 ---
 
